@@ -1,17 +1,6 @@
-
 services:
   - type: web
-    name: oss-uploader
+    name: oss-uploader-for-coze
     env: python
-    plan: free
-    buildCommand: ""
+    buildCommand: "pip install -r requirements.txt"
     startCommand: "python app.py"
-    envVars:
-      - key: ALIYUN_ACCESS_KEY_ID
-        sync: false
-      - key: ALIYUN_ACCESS_KEY_SECRET
-        sync: false
-      - key: ALIYUN_OSS_ENDPOINT
-        sync: false
-      - key: ALIYUN_BUCKET_NAME
-        sync: false
