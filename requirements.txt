@@ -1,2 +1,3 @@
 flask
 oss2
+gunicorn

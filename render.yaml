@@ -3,4 +3,4 @@ services:
     name: oss-uploader-for-coze
     env: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "python app.py"
+    startCommand: "gunicorn app:app"
