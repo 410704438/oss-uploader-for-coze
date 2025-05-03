@@ -1,37 +1,34 @@
-
 import os
 from flask import Flask, request, jsonify
 import oss2
-import base64
-import uuid
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-access_key_id = os.environ.get("ALIYUN_ACCESS_KEY_ID")
-access_key_secret = os.environ.get("ALIYUN_ACCESS_KEY_SECRET")
-endpoint = os.environ.get("ALIYUN_OSS_ENDPOINT", "oss-cn-beijing.aliyuncs.com")
-bucket_name = os.environ.get("ALIYUN_BUCKET_NAME", "xhs-image-proxy")
+# 从环境变量中获取 OSS 配置
+OSS_ACCESS_KEY_ID = os.environ.get("OSS_ACCESS_KEY_ID")
+OSS_ACCESS_KEY_SECRET = os.environ.get("OSS_ACCESS_KEY_SECRET")
+OSS_BUCKET = os.environ.get("OSS_BUCKET")
+OSS_ENDPOINT = os.environ.get("OSS_ENDPOINT")
+OSS_FOLDER_PREFIX = os.environ.get("OSS_FOLDER_PREFIX", "")
 
-auth = oss2.Auth(access_key_id, access_key_secret)
-bucket = oss2.Bucket(auth, endpoint, bucket_name)
+auth = oss2.Auth(OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET)
+bucket = oss2.Bucket(auth, OSS_ENDPOINT, OSS_BUCKET)
 
-@app.route('/upload', methods=['POST'])
-def upload_image():
-    try:
-        data = request.json
-        base64_data = data.get('base64')
-        if not base64_data:
-            return jsonify({"error": "base64 data missing"}), 400
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
 
-        image_data = base64.b64decode(base64_data.split(",")[-1])
-        filename = f"{uuid.uuid4()}.jpg"
+    filename = secure_filename(file.filename)
+    oss_path = OSS_FOLDER_PREFIX + filename
+    bucket.put_object(oss_path, file.stream)
 
-        bucket.put_object(filename, image_data)
-        url = f"https://{bucket_name}.{endpoint}/{filename}"
+    url = f"https://{OSS_BUCKET}.{OSS_ENDPOINT}/{oss_path}"
+    return jsonify({"url": url})
 
-        return jsonify({"message": "Upload successful", "url": url})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000)
